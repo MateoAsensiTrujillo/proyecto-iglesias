@@ -1,33 +1,98 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
+        <title>Mapa de Iglesias - Convención Evangélica Bautista Argentina</title>
+        
         <link rel="stylesheet" href="css/leaflet.css">
-        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
         <link rel="stylesheet" href="css/L.Control.Locate.min.css">
         <link rel="stylesheet" href="css/qgis2web.css">
         <link rel="stylesheet" href="css/fontawesome-all.min.css">
         <link rel="stylesheet" href="css/leaflet.photon.css">
+        
         <style>
         html, body, #map {
             width: 100%;
             height: 100%;
             padding: 0;
             margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* Custom header bar */
+        .map-header-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(8px);
+            padding: 8px 14px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            font-size: 13px;
+            font-weight: 600;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            pointer-events: auto;
+        }
+        .map-header-badge .badge-dot {
+            width: 10px;
+            height: 10px;
+            background-color: #2563eb;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 6px rgba(37, 99, 235, 0.6);
+        }
+
+        /* Custom church popup */
+        .church-popup-content {
+            font-size: 13px;
+            line-height: 1.45;
+            color: #334155;
+            min-width: 200px;
+            max-width: 280px;
+        }
+        .church-popup-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e3a8a;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 4px;
+        }
+        .church-popup-row {
+            margin-bottom: 4px;
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+        }
+        .church-popup-row i {
+            color: #64748b;
+            margin-top: 2px;
+            width: 14px;
+            text-align: center;
+        }
+        .church-popup-row strong {
+            color: #1e293b;
         }
         </style>
-        <title></title>
     </head>
     <body>
-        <div id="map">
+        <div id="map"></div>
+        <div class="map-header-badge" id="statsBadge">
+            <span class="badge-dot"></span>
+            <span id="statsText">Cargando iglesias...</span>
         </div>
+
         <script src="js/qgis2web_expressions.js"></script>
         <script src="js/leaflet.js"></script>
-        <script src="js/L.Control.Layers.Tree.min.js"></script>
         <script src="js/L.Control.Locate.min.js"></script>
         <script src="js/leaflet.rotatedMarker.js"></script>
         <script src="js/leaflet.pattern.js"></script>
@@ -37,221 +102,235 @@
         <script src="js/labelgun.min.js"></script>
         <script src="js/labels.js"></script>
         <script src="js/leaflet.photon.js"></script>
-        <script src="data/ConvencinEvanglicaBautistaArgentinaBBCA_1.js"></script>
+        
+        <!-- Datos de iglesias (empaquetado para soporte offline sin servidor web) -->
+        <script src="data/iglesias_nacion.js"></script>
+
         <script>
         var map = L.map('map', {
-            zoomControl:false, maxZoom:28, minZoom:1
-        }).fitBounds([[-38.77166213188698,-62.31188906927013],[-38.696933126362566,-62.16134691017358]]);
+            zoomControl: false, 
+            maxZoom: 28, 
+            minZoom: 2
+        });
+        
         var hash = new L.Hash(map);
-        map.attributionControl.setPrefix('<a href="https://github.com/qgis2web/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
-        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
-        // remove popup's row if "visible-with-data"
-        function removeEmptyRowsFromPopupContent(content, feature) {
-         var tempDiv = document.createElement('div');
-         tempDiv.innerHTML = content;
-         var rows = tempDiv.querySelectorAll('tr');
-         for (var i = 0; i < rows.length; i++) {
-             var td = rows[i].querySelector('td.visible-with-data');
-             var key = td ? td.id : '';
-             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
-                 rows[i].parentNode.removeChild(rows[i]);
-             }
-         }
-         return tempDiv.innerHTML;
-        }
-        // modify popup if contains media
-        function addClassToPopupIfMedia(content, popup) {
-            var tempDiv = document.createElement('div');
-            tempDiv.innerHTML = content;
-            var imgTd = tempDiv.querySelector('td img');
-            if (imgTd) {
-                var src = imgTd.getAttribute('src');
-                if (/\.(jpg|jpeg|png|gif|bmp|webp|avif)$/i.test(src)) {
-                    popup._contentNode.classList.add('media');
-                    var img = popup._contentNode.querySelector('td img');
-                    if (img) {
-                        // If already loaded (cache), update immediately
-                        if (img.complete && img.naturalHeight > 0) {
-                            popup.update();
-                        } else {
-                            img.addEventListener('load', function() {
-                                popup.update();
-                            });
-                            img.addEventListener('error', function() {
-                                popup.update();
-                            });
-                        }
-                    }
-                } else if (/\.(mp3|wav|ogg|aac)$/i.test(src)) {
-                    var audio = document.createElement('audio');
-                    audio.controls = true;
-                    audio.src = src;
-                    imgTd.parentNode.replaceChild(audio, imgTd);
-                    popup._contentNode.classList.add('media');
-                    setTimeout(function() {
-                        popup.setContent(tempDiv.innerHTML);
-                        popup.update();
-                    }, 10);
-                } else if (/\.(mp4|webm|ogg|mov)$/i.test(src)) {
-                    var video = document.createElement('video');
-                    video.controls = true;
-                    video.src = src;
-                    video.style.width = "400px";
-                    video.style.height = "300px";
-                    video.style.maxHeight = "60vh";
-                    video.style.maxWidth = "60vw";
-                    imgTd.parentNode.replaceChild(video, imgTd);
-                    popup._contentNode.classList.add('media');
-                    // Aggiorna il popup quando il video carica i metadati
-                    video.addEventListener('loadedmetadata', function() {
-                        popup.update();
-                    });
-                    setTimeout(function() {
-                        popup.setContent(tempDiv.innerHTML);
-                        popup.update();
-                    }, 10);
-                } else {
-                    popup._contentNode.classList.remove('media');
-                }
-            } else {
-                popup._contentNode.classList.remove('media');
-            }
-        }
+        map.attributionControl.setPrefix('<a href="https://leafletjs.com" title="Leaflet">Leaflet</a> &middot; <a href="https://wms.ign.gob.ar" target="_blank">IGN Argentina</a>');
+        var autolinker = new Autolinker({truncate: {length: 35, location: 'smart'}});
+
         var zoomControl = L.control.zoom({
             position: 'topleft'
         }).addTo(map);
+
         L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
-        var bounds_group = new L.featureGroup([]);
-        function setBounds() {
-        }
+
+        // Capas base
         map.createPane('pane_MapaIGN_0');
         map.getPane('pane_MapaIGN_0').style.zIndex = 400;
         var layer_MapaIGN_0 = L.tileLayer('https://wms.ign.gob.ar/geoserver/gwc/service/tms/1.0.0/capabaseargenmap@EPSG:3857@png/{z}/{x}/{-y}.png', {
             pane: 'pane_MapaIGN_0',
             opacity: 1.0,
-            attribution: '',
+            attribution: 'IGN Argenmap',
             minZoom: 1,
             maxZoom: 28,
             minNativeZoom: 0,
             maxNativeZoom: 18
         });
-        layer_MapaIGN_0;
-        map.addLayer(layer_MapaIGN_0);
-        function pop_ConvencinEvanglicaBautistaArgentinaBBCA_1(feature, layer) {
-            var popupContent = '<table>\
-                    <tr>\
-                        <td colspan="2"><strong>Nombre</strong><br />' + (feature.properties['Nombre'] !== null ? autolinker.link(String(feature.properties['Nombre']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td class="visible-with-data" id="Ciudad" colspan="2"><strong>Ciudad</strong><br />' + (feature.properties['Ciudad'] !== null ? autolinker.link(String(feature.properties['Ciudad']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td class="visible-with-data" id="Provincia" colspan="2"><strong>Provincia</strong><br />' + (feature.properties['Provincia'] !== null ? autolinker.link(String(feature.properties['Provincia']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td class="visible-with-data" id="CI" colspan="2"><strong>CI</strong><br />' + (feature.properties['CI'] !== null ? autolinker.link(String(feature.properties['CI']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td class="visible-with-data" id="Direccion" colspan="2"><strong>Direccion</strong><br />' + (feature.properties['Direccion'] !== null ? autolinker.link(String(feature.properties['Direccion']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                </table>';
-            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
-			layer.on('popupopen', function(e) {
-				addClassToPopupIfMedia(content, e.popup);
-			});
-			layer.bindPopup(content, { maxHeight: 400 });
+
+        var layer_OSM = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            opacity: 1.0,
+            attribution: '&copy; OpenStreetMap contributors',
+            minZoom: 1,
+            maxZoom: 19
+        });
+
+        // Por defecto usar IGN Argenmap
+        layer_MapaIGN_0.addTo(map);
+
+        // Validar si coordenadas corresponden a Argentina / válidas
+        function isValidCoordinate(coords) {
+            if (!coords || coords.length < 2) return false;
+            var lng = coords[0];
+            var lat = coords[1];
+            if (lat === 0 && lng === 0) return false;
+            // Argentina aprox: lat entre -56 y -21, lng entre -74 y -53
+            if (lat > -20 || lat < -57 || lng < -75 || lng > -52) return false;
+            return true;
         }
 
-        function style_ConvencinEvanglicaBautistaArgentinaBBCA_1_0() {
-            return {
-                pane: 'pane_ConvencinEvanglicaBautistaArgentinaBBCA_1',
-                radius: 4.0,
-                opacity: 1,
-                color: 'rgba(35,35,35,1.0)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1,
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(141,90,153,1.0)',
-                interactive: true,
+        // Estilo de popup
+        function buildPopupContent(feature) {
+            var props = feature.properties || {};
+            var nombre = props.IGLESIA || props.Nombre || 'Iglesia Bautista';
+            var direccion = props.DIRECCION || props.Direccion || '';
+            var ciudad = props.CIUDAD || props.Ciudad || '';
+            var provincia = props.PROVINCIA || props.Provincia || '';
+            var pais = props.PAIS || props.Pais || 'Argentina';
+            var cl = props.CL || props.CI || '';
+
+            var html = '<div class="church-popup-content">';
+            html += '<div class="church-popup-title">' + autolinker.link(String(nombre)) + '</div>';
+            
+            if (direccion) {
+                html += '<div class="church-popup-row"><i class="fa fa-map-marker-alt"></i> <span><strong>Dirección:</strong> ' + autolinker.link(String(direccion)) + '</span></div>';
             }
+            if (ciudad) {
+                html += '<div class="church-popup-row"><i class="fa fa-city"></i> <span><strong>Ciudad:</strong> ' + autolinker.link(String(ciudad)) + '</span></div>';
+            }
+            if (provincia) {
+                html += '<div class="church-popup-row"><i class="fa fa-map"></i> <span><strong>Provincia:</strong> ' + autolinker.link(String(provincia)) + '</span></div>';
+            }
+            if (pais && pais !== 'Argentina') {
+                html += '<div class="church-popup-row"><i class="fa fa-globe"></i> <span><strong>País:</strong> ' + autolinker.link(String(pais)) + '</span></div>';
+            }
+            if (cl && cl !== '0' && cl !== 0) {
+                html += '<div class="church-popup-row"><i class="fa fa-tag"></i> <span><strong>Registro C.L.:</strong> ' + cl + '</span></div>';
+            }
+            html += '</div>';
+            return html;
         }
-        map.createPane('pane_ConvencinEvanglicaBautistaArgentinaBBCA_1');
-        map.getPane('pane_ConvencinEvanglicaBautistaArgentinaBBCA_1').style.zIndex = 401;
-        map.getPane('pane_ConvencinEvanglicaBautistaArgentinaBBCA_1').style['mix-blend-mode'] = 'normal';
-        var layer_ConvencinEvanglicaBautistaArgentinaBBCA_1 = new L.geoJson(json_ConvencinEvanglicaBautistaArgentinaBBCA_1, {
-            attribution: '',
-            interactive: true,
-            dataVar: 'json_ConvencinEvanglicaBautistaArgentinaBBCA_1',
-            layerName: 'layer_ConvencinEvanglicaBautistaArgentinaBBCA_1',
-            pane: 'pane_ConvencinEvanglicaBautistaArgentinaBBCA_1',
-            onEachFeature: pop_ConvencinEvanglicaBautistaArgentinaBBCA_1,
-            pointToLayer: function (feature, latlng) {
-                var context = {
-                    feature: feature,
-                    variables: {}
-                };
-                return L.circleMarker(latlng, style_ConvencinEvanglicaBautistaArgentinaBBCA_1_0(feature));
-            },
-        });
-        bounds_group.addLayer(layer_ConvencinEvanglicaBautistaArgentinaBBCA_1);
-        map.addLayer(layer_ConvencinEvanglicaBautistaArgentinaBBCA_1);
-        const url = {"Nominatim OSM": "https://nominatim.openstreetmap.org/search?format=geojson&addressdetails=1&",
-        "France BAN": "https://api-adresse.data.gouv.fr/search/?"}
+
+        var layer_iglesias = null;
+
+        function loadGeoJsonData(geojsonData) {
+            var validFeaturesCount = 0;
+            var invalidFeaturesCount = 0;
+
+            layer_iglesias = L.geoJson(geojsonData, {
+                filter: function(feature) {
+                    var ok = isValidCoordinate(feature.geometry && feature.geometry.coordinates);
+                    if (ok) {
+                        validFeaturesCount++;
+                        return true;
+                    } else {
+                        invalidFeaturesCount++;
+                        return false;
+                    }
+                },
+                pointToLayer: function(feature, latlng) {
+                    return L.circleMarker(latlng, {
+                        radius: 5,
+                        fillColor: "#2563eb",
+                        color: "#ffffff",
+                        weight: 1.5,
+                        opacity: 1,
+                        fillOpacity: 0.85
+                    });
+                },
+                onEachFeature: function(feature, layer) {
+                    var popupHtml = buildPopupContent(feature);
+                    layer.bindPopup(popupHtml, { maxHeight: 380, maxWidth: 300 });
+
+                    // Resaltar suavemente al pasar el mouse
+                    layer.on('mouseover', function() {
+                        this.setStyle({ radius: 7, fillColor: "#1d4ed8" });
+                    });
+                    layer.on('mouseout', function() {
+                        this.setStyle({ radius: 5, fillColor: "#2563eb" });
+                    });
+                }
+            });
+
+            // Agregar directamente la capa de iglesias sin agrupar
+            layer_iglesias.addTo(map);
+
+            // Ajustar vista general a las iglesias
+            if (layer_iglesias.getBounds().isValid()) {
+                map.fitBounds(layer_iglesias.getBounds(), { padding: [30, 30] });
+            }
+
+            // Actualizar badge
+            var badgeText = validFeaturesCount.toLocaleString() + ' iglesias en Argentina';
+            if (invalidFeaturesCount > 0) {
+                badgeText += ' (' + invalidFeaturesCount + ' sin coords)';
+            }
+            document.getElementById('statsText').innerText = badgeText;
+
+            // Control de capas
+            var baseMaps = {
+                "Mapa IGN Argenmap": layer_MapaIGN_0,
+                "OpenStreetMap": layer_OSM
+            };
+            var overlayMaps = {
+                "Iglesias": layer_iglesias
+            };
+            L.control.layers(baseMaps, overlayMaps, { collapsed: true, position: 'topright' }).addTo(map);
+        }
+
+        // Cargar desde variable JS o fetch de fallback
+        if (typeof json_iglesias_nacion !== 'undefined') {
+            loadGeoJsonData(json_iglesias_nacion);
+        } else {
+            fetch('data/iglesias_nacion.geojson')
+                .then(function(res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function(data) {
+                    loadGeoJsonData(data);
+                })
+                .catch(function(err) {
+                    console.error('Error al cargar datos GeoJSON:', err);
+                    document.getElementById('statsText').innerText = 'Error al cargar GeoJSON';
+                });
+        }
+
+        // Geocoder Photon / búsqueda
+        var obj2 = {}, obj3 = {};
+        const url = {
+            "Nominatim OSM": "https://nominatim.openstreetmap.org/search?format=geojson&addressdetails=1&",
+            "France BAN": "https://api-adresse.data.gouv.fr/search/?"
+        };
         var photonControl = L.control.photon({
             url: url["Nominatim OSM"],
             feedbackLabel: '',
             position: 'topleft',
             includePosition: true,
-            initial: true,
-            // resultsHandler: myHandler,
+            initial: true
         }).addTo(map);
-        photonControl._container.childNodes[0].style.borderRadius="10px"
-        // Create a variable to store the geoJSON data
+
+        if (photonControl._container && photonControl._container.childNodes[0]) {
+            photonControl._container.childNodes[0].style.borderRadius = "10px";
+        }
+
         var x = null;
-        // Create a variable to store the marker
-        var marker = null;
-        // Add an event listener to the Photon control to create a marker from the returned geoJSON data
-        var z = null;
         photonControl.on('selected', function(e) {
-            console.log(photonControl.search.resultsContainer);
             if (x != null) {
-                map.removeLayer(obj3.marker);
+                if (obj3.marker) map.removeLayer(obj3.marker);
                 map.removeLayer(x);
             }
             obj2.gcd = e.choice;
             x = L.geoJSON(obj2.gcd).addTo(map);
             var label = typeof obj2.gcd.properties.label === 'undefined' ? obj2.gcd.properties.display_name : obj2.gcd.properties.label;
             obj3.marker = L.marker(x.getLayers()[0].getLatLng()).bindPopup(label).addTo(map);
-            map.setView(x.getLayers()[0].getLatLng(), 17);
-            z = typeof e.choice.properties.label === 'undefined'? e.choice.properties.display_name : e.choice.properties.label;
-            console.log(e);
+            map.setView(x.getLayers()[0].getLatLng(), 15);
+            var z = typeof e.choice.properties.label === 'undefined' ? e.choice.properties.display_name : e.choice.properties.label;
             e.target.input.value = z;
         });
+
         var search = document.getElementsByClassName("leaflet-photon leaflet-control")[0];
-        search.classList.add("leaflet-control-search")
-        search.style.display = "flex";
-        search.style.backgroundColor="rgba(255,255,255,0.5)" 
+        if (search) {
+            search.classList.add("leaflet-control-search");
+            search.style.display = "flex";
+            search.style.backgroundColor = "rgba(255,255,255,0.85)";
 
-        // Create the new button element
-        var button = document.createElement("div");
-        button.id = "gcd-button-control";
-        button.className = "gcd-gl-btn fa fa-search search-button";
+            var button = document.createElement("div");
+            button.id = "gcd-button-control";
+            button.className = "gcd-gl-btn fa fa-search search-button";
 
-        // Insert the button at the beginning of the search control
-        search.insertBefore(button, search.firstChild);
-        last = search.lastChild;
-        last.style.display = "none";
-        button.addEventListener("click", function (e) {
-            if (last.style.display === "none") {
-                last.style.display = "block";
-            } else {
+            search.insertBefore(button, search.firstChild);
+            var last = search.lastChild;
+            if (last) {
                 last.style.display = "none";
+                button.addEventListener("click", function (e) {
+                    if (last.style.display === "none") {
+                        last.style.display = "block";
+                        if (search.querySelector('input')) search.querySelector('input').focus();
+                    } else {
+                        last.style.display = "none";
+                    }
+                });
             }
-        });
-        setBounds();
+        }
         </script>        
     </body>
 </html>
