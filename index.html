@@ -6,7 +6,7 @@
         <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
-        <title>Mapa de Iglesias - Convención Evangélica Bautista Argentina</title>
+        <title>Mapa de Iglesias y División Provincial - CEBA</title>
         
         <link rel="stylesheet" href="css/leaflet.css">
         <link rel="stylesheet" href="css/L.Control.Locate.min.css">
@@ -15,49 +15,487 @@
         <link rel="stylesheet" href="css/leaflet.photon.css">
         
         <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #eff6ff;
+            --primary-border: #bfdbfe;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --bg-glass: rgba(255, 255, 255, 0.95);
+            --border-glass: rgba(226, 232, 240, 0.9);
+            --shadow-card: 0 4px 20px -2px rgba(15, 23, 42, 0.12);
+        }
+
         html, body, #map {
             width: 100%;
             height: 100%;
             padding: 0;
             margin: 0;
+            overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f1f5f9;
         }
 
-        /* Custom header bar */
+        /* Leaflet Controls Column (Top Left) */
+        .leaflet-top.leaflet-left {
+            top: 14px;
+            left: 14px;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        body.sidebar-open .leaflet-top.leaflet-left {
+            left: 366px;
+        }
+
+        /* Leaflet Native Sidebar Toggle Control */
+        .leaflet-control-sidebar-toggle a {
+            background-color: #ffffff;
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+            text-align: center;
+            color: #334155;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+        .leaflet-control-sidebar-toggle a:hover {
+            background-color: #f8fafc;
+            color: var(--primary);
+        }
+        body.sidebar-open .leaflet-control-sidebar-toggle a {
+            background-color: #eff6ff;
+            color: var(--primary);
+        }
+
+        /* Header Info Badge (Top Right) */
         .map-header-badge {
             position: absolute;
-            top: 12px;
-            right: 12px;
+            top: 14px;
+            right: 14px;
             z-index: 1000;
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(8px);
+            background: var(--bg-glass);
+            backdrop-filter: blur(10px);
             padding: 8px 14px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            border-radius: 10px;
+            box-shadow: var(--shadow-card);
+            border: 1px solid var(--border-glass);
             font-size: 13px;
             font-weight: 600;
-            color: #1e293b;
+            color: var(--text-dark);
             display: flex;
             align-items: center;
             gap: 8px;
             pointer-events: auto;
+            user-select: none;
         }
         .map-header-badge .badge-dot {
             width: 10px;
             height: 10px;
-            background-color: #2563eb;
+            background-color: var(--primary);
             border-radius: 50%;
             display: inline-block;
-            box-shadow: 0 0 6px rgba(37, 99, 235, 0.6);
+            box-shadow: 0 0 8px rgba(37, 99, 235, 0.7);
         }
 
-        /* Custom church popup */
+        /* Sidebar Panel */
+        .sidebar-panel {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            bottom: 14px;
+            width: 338px;
+            z-index: 1002;
+            background: var(--bg-glass);
+            backdrop-filter: blur(14px);
+            border: 1px solid var(--border-glass);
+            border-radius: 14px;
+            box-shadow: 0 12px 35px rgba(15, 23, 42, 0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(-370px);
+        }
+        body.sidebar-open .sidebar-panel {
+            transform: translateX(0);
+        }
+
+        /* Sidebar Header (Clean, without church drawing) */
+        .sidebar-header {
+            padding: 16px 16px 12px;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.8) 100%);
+        }
+        .sidebar-header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .sidebar-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0;
+            line-height: 1.2;
+            letter-spacing: -0.2px;
+        }
+        .sidebar-close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.15s ease;
+        }
+        .sidebar-close-btn:hover {
+            background: #e2e8f0;
+            color: var(--text-dark);
+        }
+        .sidebar-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Search Bar */
+        .sidebar-tools {
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+            background: #ffffff;
+        }
+        .search-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .search-box i.fa-search {
+            position: absolute;
+            left: 10px;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+        .search-input {
+            width: 100%;
+            padding: 8px 28px 8px 30px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 12.5px;
+            color: var(--text-dark);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            box-sizing: border-box;
+            background: #f8fafc;
+        }
+        .search-input:focus {
+            border-color: var(--primary);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        .search-clear-btn {
+            position: absolute;
+            right: 8px;
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            display: none;
+            padding: 2px;
+            font-size: 12px;
+        }
+        .search-clear-btn:hover {
+            color: #475569;
+        }
+
+        /* Active Filter Alert Banner */
+        .active-filter-banner {
+            display: none;
+            padding: 8px 12px;
+            background: #eff6ff;
+            border-left: 3px solid var(--primary);
+            border-bottom: 1px solid #dbeafe;
+            font-size: 12px;
+            color: #1e40af;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .active-filter-banner.show {
+            display: flex;
+        }
+        .reset-filter-link {
+            color: #2563eb;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-left: 6px;
+        }
+
+        /* Province List Container */
+        .province-list {
+            flex: 1 1 0px;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .province-list::-webkit-scrollbar {
+            width: 5px;
+        }
+        .province-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .province-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .province-list::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Province Card (Card Container with Accordion) */
+        .prov-card {
+            flex-shrink: 0;
+            min-height: 38px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+        }
+        .prov-card:hover {
+            border-color: var(--primary-border);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+        }
+        .prov-card.selected {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.22);
+        }
+
+        /* Header of Card */
+        .prov-card-header {
+            position: relative;
+            padding: 9px 12px;
+            min-height: 38px;
+            box-sizing: border-box;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            overflow: hidden;
+            z-index: 2;
+        }
+        .prov-card.selected .prov-card-header {
+            background: #eff6ff;
+        }
+
+        /* Relative progress bar behind province name */
+        .prov-card-progress {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, rgba(219, 234, 254, 0.55) 0%, rgba(191, 219, 254, 0.18) 100%);
+            pointer-events: none;
+            z-index: 1;
+            transition: width 0.4s ease;
+        }
+        .prov-card-info {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            min-width: 0;
+        }
+        .prov-name {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--text-dark);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .prov-card.selected .prov-name {
+            color: var(--primary-dark);
+            font-weight: 700;
+        }
+        .prov-chevron {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-left: 4px;
+            transition: transform 0.25s ease, color 0.2s;
+        }
+        .prov-card.expanded .prov-chevron {
+            transform: rotate(180deg);
+            color: var(--primary);
+        }
+        .prov-count-wrap {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+        }
+        .prov-count-badge {
+            background: #f1f5f9;
+            color: var(--text-dark);
+            font-size: 12px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+        .prov-card:hover .prov-count-badge,
+        .prov-card.selected .prov-count-badge {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
+        }
+        .prov-percent {
+            font-size: 10px;
+            color: #94a3b8;
+            min-width: 28px;
+            text-align: right;
+        }
+
+        /* City / Localidad Sub-list (Accordion) */
+        .city-accordion {
+            display: none;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            padding: 6px 10px 8px;
+            max-height: 220px;
+            overflow-y: auto;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 2;
+            flex-shrink: 0;
+        }
+        .prov-card.expanded .city-accordion {
+            display: flex;
+        }
+        .city-accordion::-webkit-scrollbar {
+            width: 4px;
+        }
+        .city-accordion::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .city-row {
+            flex-shrink: 0;
+            min-height: 28px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 5px 8px;
+            border-radius: 6px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--text-dark);
+            transition: all 0.15s ease;
+        }
+        .city-row:hover {
+            background: #eff6ff;
+            border-color: var(--primary-border);
+            color: var(--primary-dark);
+            transform: translateX(2px);
+        }
+        .city-row.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .city-row-name {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .city-row-name i {
+            font-size: 11px;
+            color: #64748b;
+        }
+        .city-row.active .city-row-name i {
+            color: #ffffff;
+        }
+        .city-row-count {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 10px;
+            background: #f1f5f9;
+            color: var(--text-dark);
+        }
+        .city-row.active .city-row-count {
+            background: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+
+        /* Sidebar Footer */
+        .sidebar-footer {
+            padding: 10px 14px;
+            border-top: 1px solid rgba(226, 232, 240, 0.8);
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        .reset-all-btn {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-dark);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.15s;
+        }
+        .reset-all-btn:hover {
+            background: #f1f5f9;
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* Church Popup */
         .church-popup-content {
             font-size: 13px;
             line-height: 1.45;
             color: #334155;
-            min-width: 200px;
-            max-width: 280px;
+            min-width: 220px;
+            max-width: 290px;
         }
         .church-popup-title {
             font-size: 14px;
@@ -82,199 +520,125 @@
         .church-popup-row strong {
             color: #1e293b;
         }
+
+        /* Mobile Optimization */
+        @media (max-width: 768px) {
+            .sidebar-panel {
+                width: calc(100% - 24px);
+                max-height: 52%;
+                top: auto;
+                bottom: 12px;
+                left: 12px;
+                transform: translateY(110%);
+            }
+            body.sidebar-open .sidebar-panel {
+                transform: translateY(0);
+            }
+            body.sidebar-open .leaflet-top.leaflet-left {
+                left: 14px;
+            }
+            .map-header-badge {
+                font-size: 11px;
+                padding: 6px 10px;
+            }
+        }
         </style>
     </head>
-    <body>
+    <body class="sidebar-open">
         <div id="map"></div>
+
+        <!-- Badge flotante de estado en esquina superior derecha -->
         <div class="map-header-badge" id="statsBadge">
             <span class="badge-dot"></span>
-            <span id="statsText">Cargando iglesias...</span>
+            <span id="statsText">Cargando datos...</span>
         </div>
 
+        <!-- Menú / Barra Lateral de Provincias -->
+        <aside class="sidebar-panel" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-header-top">
+                    <h2 class="sidebar-title">División Provincial</h2>
+                    <button class="sidebar-close-btn" id="sidebarCloseBtn" title="Ocultar panel">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                <div class="sidebar-subtitle">
+                    <span id="totalChurchesCount">1.097 iglesias</span>
+                    <span>24 provincias</span>
+                </div>
+            </div>
+
+            <!-- Buscador de provincias y localidades -->
+            <div class="sidebar-tools">
+                <div class="search-box">
+                    <i class="fa fa-search"></i>
+                    <input type="text" id="provSearchInput" class="search-input" placeholder="Buscar provincia o ciudad..." autocomplete="off">
+                    <button class="search-clear-btn" id="searchClearBtn" title="Limpiar"><i class="fa fa-times"></i></button>
+                </div>
+            </div>
+
+            <!-- Banner de filtro provincial o de ciudad activo -->
+            <div class="active-filter-banner" id="activeFilterBanner">
+                <span>Filtrando: <strong id="activeFilterName">-</strong></span>
+                <span class="reset-filter-link" id="clearFilterLink">Ver todo</span>
+            </div>
+
+            <!-- Lista con scroll de provincias ordenadas por cantidad -->
+            <div class="province-list" id="provinceList"></div>
+
+            <!-- Footer con botón de reset de encuadre al país -->
+            <div class="sidebar-footer">
+                <span id="filteredStatsLabel">24 provincias</span>
+                <button class="reset-all-btn" id="resetMapBoundsBtn" title="Reencuadrar mapa al centro del país">
+                    <i class="fa fa-compress-arrows-alt"></i> Todo el país
+                </button>
+            </div>
+        </aside>
+
+        <!-- Librerías JS del visor -->
         <script src="js/qgis2web_expressions.js"></script>
         <script src="js/leaflet.js"></script>
         <script src="js/L.Control.Locate.min.js"></script>
         <script src="js/leaflet.rotatedMarker.js"></script>
         <script src="js/leaflet.pattern.js"></script>
-        <script src="js/leaflet-hash.js"></script>
         <script src="js/Autolinker.min.js"></script>
         <script src="js/rbush.min.js"></script>
         <script src="js/labelgun.min.js"></script>
         <script src="js/labels.js"></script>
         <script src="js/leaflet.photon.js"></script>
         
-        <!-- Datos de iglesias (empaquetado para soporte offline sin servidor web) -->
+        <!-- Datos de división provincial e iglesias (empaquetados para soporte offline sin CORS) -->
+        <script src="data/provincias_arg.js"></script>
         <script src="data/iglesias_nacion.js"></script>
 
         <script>
+        // Coordenadas del centro geográfico de Argentina continental (La Pampa / Córdoba)
+        var ARGENTINA_CENTER = [-38.4161, -63.6167];
+        var ARGENTINA_BOUNDS = L.latLngBounds([[-55.1, -73.6], [-21.8, -53.6]]);
+
+        // Limpiar hash previo en URL para evitar saltos indeseados
+        if (window.location.hash) {
+            try { history.replaceState(null, null, window.location.pathname); } catch(e) {}
+        }
+
+        // Inicializar Mapa Leaflet centrado en el centro del país
         var map = L.map('map', {
             zoomControl: false, 
             maxZoom: 28, 
-            minZoom: 2
+            minZoom: 3,
+            zoomSnap: 0.25,
+            center: ARGENTINA_CENTER,
+            zoom: 4
         });
         
-        var hash = new L.Hash(map);
         map.attributionControl.setPrefix('<a href="https://leafletjs.com" title="Leaflet">Leaflet</a> &middot; <a href="https://wms.ign.gob.ar" target="_blank">IGN Argentina</a>');
         var autolinker = new Autolinker({truncate: {length: 35, location: 'smart'}});
 
-        var zoomControl = L.control.zoom({
-            position: 'topleft'
-        }).addTo(map);
-
+        // Control de Zoom y Localización integrados en topleft
+        var zoomControl = L.control.zoom({ position: 'topleft' }).addTo(map);
         L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
 
-        // Capas base
-        map.createPane('pane_MapaIGN_0');
-        map.getPane('pane_MapaIGN_0').style.zIndex = 400;
-        var layer_MapaIGN_0 = L.tileLayer('https://wms.ign.gob.ar/geoserver/gwc/service/tms/1.0.0/capabaseargenmap@EPSG:3857@png/{z}/{x}/{-y}.png', {
-            pane: 'pane_MapaIGN_0',
-            opacity: 1.0,
-            attribution: 'IGN Argenmap',
-            minZoom: 1,
-            maxZoom: 28,
-            minNativeZoom: 0,
-            maxNativeZoom: 18
-        });
-
-        var layer_OSM = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            opacity: 1.0,
-            attribution: '&copy; OpenStreetMap contributors',
-            minZoom: 1,
-            maxZoom: 19
-        });
-
-        // Por defecto usar IGN Argenmap
-        layer_MapaIGN_0.addTo(map);
-
-        // Validar si coordenadas corresponden a Argentina / válidas
-        function isValidCoordinate(coords) {
-            if (!coords || coords.length < 2) return false;
-            var lng = coords[0];
-            var lat = coords[1];
-            if (lat === 0 && lng === 0) return false;
-            // Argentina aprox: lat entre -56 y -21, lng entre -74 y -53
-            if (lat > -20 || lat < -57 || lng < -75 || lng > -52) return false;
-            return true;
-        }
-
-        // Estilo de popup
-        function buildPopupContent(feature) {
-            var props = feature.properties || {};
-            var nombre = props.IGLESIA || props.Nombre || 'Iglesia Bautista';
-            var direccion = props.DIRECCION || props.Direccion || '';
-            var ciudad = props.CIUDAD || props.Ciudad || '';
-            var provincia = props.PROVINCIA || props.Provincia || '';
-            var pais = props.PAIS || props.Pais || 'Argentina';
-            var cl = props.CL || props.CI || '';
-
-            var html = '<div class="church-popup-content">';
-            html += '<div class="church-popup-title">' + autolinker.link(String(nombre)) + '</div>';
-            
-            if (direccion) {
-                html += '<div class="church-popup-row"><i class="fa fa-map-marker-alt"></i> <span><strong>Dirección:</strong> ' + autolinker.link(String(direccion)) + '</span></div>';
-            }
-            if (ciudad) {
-                html += '<div class="church-popup-row"><i class="fa fa-city"></i> <span><strong>Ciudad:</strong> ' + autolinker.link(String(ciudad)) + '</span></div>';
-            }
-            if (provincia) {
-                html += '<div class="church-popup-row"><i class="fa fa-map"></i> <span><strong>Provincia:</strong> ' + autolinker.link(String(provincia)) + '</span></div>';
-            }
-            if (pais && pais !== 'Argentina') {
-                html += '<div class="church-popup-row"><i class="fa fa-globe"></i> <span><strong>País:</strong> ' + autolinker.link(String(pais)) + '</span></div>';
-            }
-            if (cl && cl !== '0' && cl !== 0) {
-                html += '<div class="church-popup-row"><i class="fa fa-tag"></i> <span><strong>Registro C.L.:</strong> ' + cl + '</span></div>';
-            }
-            html += '</div>';
-            return html;
-        }
-
-        var layer_iglesias = null;
-
-        function loadGeoJsonData(geojsonData) {
-            var validFeaturesCount = 0;
-            var invalidFeaturesCount = 0;
-
-            layer_iglesias = L.geoJson(geojsonData, {
-                filter: function(feature) {
-                    var ok = isValidCoordinate(feature.geometry && feature.geometry.coordinates);
-                    if (ok) {
-                        validFeaturesCount++;
-                        return true;
-                    } else {
-                        invalidFeaturesCount++;
-                        return false;
-                    }
-                },
-                pointToLayer: function(feature, latlng) {
-                    return L.circleMarker(latlng, {
-                        radius: 5,
-                        fillColor: "#2563eb",
-                        color: "#ffffff",
-                        weight: 1.5,
-                        opacity: 1,
-                        fillOpacity: 0.85
-                    });
-                },
-                onEachFeature: function(feature, layer) {
-                    var popupHtml = buildPopupContent(feature);
-                    layer.bindPopup(popupHtml, { maxHeight: 380, maxWidth: 300 });
-
-                    // Resaltar suavemente al pasar el mouse
-                    layer.on('mouseover', function() {
-                        this.setStyle({ radius: 7, fillColor: "#1d4ed8" });
-                    });
-                    layer.on('mouseout', function() {
-                        this.setStyle({ radius: 5, fillColor: "#2563eb" });
-                    });
-                }
-            });
-
-            // Agregar directamente la capa de iglesias sin agrupar
-            layer_iglesias.addTo(map);
-
-            // Ajustar vista general a las iglesias
-            if (layer_iglesias.getBounds().isValid()) {
-                map.fitBounds(layer_iglesias.getBounds(), { padding: [30, 30] });
-            }
-
-            // Actualizar badge
-            var badgeText = validFeaturesCount.toLocaleString() + ' iglesias en Argentina';
-            if (invalidFeaturesCount > 0) {
-                badgeText += ' (' + invalidFeaturesCount + ' sin coords)';
-            }
-            document.getElementById('statsText').innerText = badgeText;
-
-            // Control de capas
-            var baseMaps = {
-                "Mapa IGN Argenmap": layer_MapaIGN_0,
-                "OpenStreetMap": layer_OSM
-            };
-            var overlayMaps = {
-                "Iglesias": layer_iglesias
-            };
-            L.control.layers(baseMaps, overlayMaps, { collapsed: true, position: 'topright' }).addTo(map);
-        }
-
-        // Cargar desde variable JS o fetch de fallback
-        if (typeof json_iglesias_nacion !== 'undefined') {
-            loadGeoJsonData(json_iglesias_nacion);
-        } else {
-            fetch('data/iglesias_nacion.geojson')
-                .then(function(res) {
-                    if (!res.ok) throw new Error('HTTP ' + res.status);
-                    return res.json();
-                })
-                .then(function(data) {
-                    loadGeoJsonData(data);
-                })
-                .catch(function(err) {
-                    console.error('Error al cargar datos GeoJSON:', err);
-                    document.getElementById('statsText').innerText = 'Error al cargar GeoJSON';
-                });
-        }
-
-        // Geocoder Photon / búsqueda
+        // Geocoder Photon / Búsqueda de Lugares en topleft
         var obj2 = {}, obj3 = {};
         const url = {
             "Nominatim OSM": "https://nominatim.openstreetmap.org/search?format=geojson&addressdetails=1&",
@@ -311,7 +675,7 @@
         if (search) {
             search.classList.add("leaflet-control-search");
             search.style.display = "flex";
-            search.style.backgroundColor = "rgba(255,255,255,0.85)";
+            search.style.backgroundColor = "rgba(255,255,255,0.9)";
 
             var button = document.createElement("div");
             button.id = "gcd-button-control";
@@ -330,6 +694,781 @@
                     }
                 });
             }
+        }
+
+        // Botón integrado en la barra de controles de Leaflet para abrir/cerrar el panel de provincias
+        var SidebarToggleControl = L.Control.extend({
+            options: { position: 'topleft' },
+            onAdd: function(map) {
+                var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-sidebar-toggle');
+                var link = L.DomUtil.create('a', '', container);
+                link.href = '#';
+                link.title = 'Mostrar / Ocultar División Provincial';
+                link.id = 'sidebarToggleLeafletBtn';
+                link.innerHTML = '<i class="fa fa-bars"></i>';
+                L.DomEvent.disableClickPropagation(container);
+                L.DomEvent.on(link, 'click', function(e) {
+                    L.DomEvent.preventDefault(e);
+                    toggleSidebar();
+                });
+                return container;
+            }
+        });
+        map.addControl(new SidebarToggleControl());
+
+        function toggleSidebar(forceState) {
+            if (typeof forceState === 'boolean') {
+                if (forceState) {
+                    document.body.classList.add('sidebar-open');
+                } else {
+                    document.body.classList.remove('sidebar-open');
+                }
+            } else {
+                document.body.classList.toggle('sidebar-open');
+            }
+        }
+
+        document.getElementById('sidebarCloseBtn').addEventListener('click', function() {
+            toggleSidebar(false);
+        });
+
+        // Capas base de teselas
+        map.createPane('pane_MapaIGN_0');
+        map.getPane('pane_MapaIGN_0').style.zIndex = 400;
+        var layer_MapaIGN_0 = L.tileLayer('https://wms.ign.gob.ar/geoserver/gwc/service/tms/1.0.0/capabaseargenmap@EPSG:3857@png/{z}/{x}/{-y}.png', {
+            pane: 'pane_MapaIGN_0',
+            opacity: 1.0,
+            attribution: 'IGN Argenmap',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 18
+        });
+
+        var layer_OSM = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            opacity: 1.0,
+            attribution: '&copy; OpenStreetMap contributors',
+            minZoom: 1,
+            maxZoom: 19
+        });
+        layer_MapaIGN_0.addTo(map);
+
+        // Panes especiales para que las iglesias estén siempre por encima de las provincias
+        map.createPane('pane_provincias');
+        map.getPane('pane_provincias').style.zIndex = 450;
+        map.createPane('pane_iglesias');
+        map.getPane('pane_iglesias').style.zIndex = 500;
+
+        // Variables de estado global
+        var provinciasData = null;
+        var iglesiasData = null;
+        var layer_provincias = null;
+        var layer_iglesias = null;
+        var provinceLayersMap = {}; // in1 -> Leaflet layer
+        var churchMarkers = []; // Array of { layer, feature, in1, cityName, lat, lng }
+        var selectedProvinceIn1 = null;
+        var selectedCityName = null;
+        var totalIglesiasCount = 0;
+        var initialArgentinaBounds = ARGENTINA_BOUNDS;
+
+        function fitToArgentina(animate) {
+            var isMobile = window.innerWidth <= 768;
+            var isSidebarOpen = document.body.classList.contains('sidebar-open');
+            var padLeft = isMobile ? 15 : (isSidebarOpen ? 180 : 30);
+            map.fitBounds(ARGENTINA_BOUNDS, {
+                paddingTopLeft: [padLeft, 20],
+                paddingBottomRight: [25, 20],
+                animate: animate !== false
+            });
+        }
+        fitToArgentina(false);
+
+        // Normalización para búsquedas y comparación
+        function cleanString(str) {
+            if (!str) return '';
+            return str.toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, "")
+                .trim();
+        }
+
+        // Formatear nombres de localidades a Title Case elegante
+        function formatCityName(name) {
+            if (!name || !name.trim()) return 'Localidad sin especificar';
+            var raw = name.trim();
+            if (/^(caba|c\.a\.b\.a\.|capital federal)$/i.test(raw)) return 'CABA';
+            return raw.toLowerCase().split(' ').map(function(word, idx) {
+                if (!word) return '';
+                if (idx > 0 && ['de', 'del', 'la', 'las', 'el', 'los', 'y', 'en'].includes(word)) {
+                    return word;
+                }
+                return word.charAt(0).toUpperCase() + word.slice(1);
+            }).join(' ');
+        }
+
+        // Validación de coordenadas para Argentina
+        function isValidCoordinate(coords) {
+            if (!coords || coords.length < 2) return false;
+            var lng = coords[0];
+            var lat = coords[1];
+            if (lat === 0 && lng === 0) return false;
+            if (lat > -20 || lat < -57 || lng < -75 || lng > -52) return false;
+            return true;
+        }
+
+        // Popup de iglesia
+        function buildPopupContent(feature) {
+            var props = feature.properties || {};
+            var nombre = props.IGLESIA || props.Nombre || 'Iglesia Bautista';
+            var direccion = props.DIRECCION || props.Direccion || '';
+            var ciudad = props.CIUDAD || props.Ciudad || '';
+            var provincia = props.PROVINCIA_NOMBRE || props.PROVINCIA || props.Provincia || '';
+            var pais = props.PAIS || props.Pais || 'Argentina';
+            var cl = props.CL || props.CI || '';
+
+            var html = '<div class="church-popup-content">';
+            html += '<div class="church-popup-title">' + autolinker.link(String(nombre)) + '</div>';
+            
+            if (direccion) {
+                html += '<div class="church-popup-row"><i class="fa fa-map-marker-alt"></i> <span><strong>Dirección:</strong> ' + autolinker.link(String(direccion)) + '</span></div>';
+            }
+            if (ciudad) {
+                html += '<div class="church-popup-row"><i class="fa fa-city"></i> <span><strong>Ciudad:</strong> ' + autolinker.link(String(ciudad)) + '</span></div>';
+            }
+            if (provincia) {
+                html += '<div class="church-popup-row"><i class="fa fa-map"></i> <span><strong>Provincia:</strong> ' + autolinker.link(String(provincia)) + '</span></div>';
+            }
+            if (pais && pais !== 'Argentina') {
+                html += '<div class="church-popup-row"><i class="fa fa-globe"></i> <span><strong>País:</strong> ' + autolinker.link(String(pais)) + '</span></div>';
+            }
+            if (cl && cl !== '0' && cl !== 0) {
+                html += '<div class="church-popup-row"><i class="fa fa-tag"></i> <span><strong>Registro C.L.:</strong> ' + cl + '</span></div>';
+            }
+            html += '</div>';
+            return html;
+        }
+
+        // Estilos para la división provincial
+        function getProvinceStyle(feature) {
+            var in1 = feature.properties.in1;
+            var isSelected = (selectedProvinceIn1 === in1);
+            
+            if (isSelected) {
+                return {
+                    pane: 'pane_provincias',
+                    weight: 3,
+                    color: '#1d4ed8',
+                    fillColor: '#2563eb',
+                    fillOpacity: 0.25,
+                    dashArray: ''
+                };
+            }
+            return {
+                pane: 'pane_provincias',
+                weight: 1.5,
+                color: '#2563eb',
+                opacity: 0.65,
+                fillColor: '#3b82f6',
+                fillOpacity: 0.05,
+                dashArray: '3, 3'
+            };
+        }
+
+        // Cargar Capa Provincial
+        function initProvinciasLayer(geojsonData) {
+            provinciasData = geojsonData;
+            provinceLayersMap = {};
+
+            layer_provincias = L.geoJson(geojsonData, {
+                style: getProvinceStyle,
+                onEachFeature: function(feature, layer) {
+                    var p = feature.properties;
+                    provinceLayersMap[p.in1] = layer;
+
+                    // Hover y click: únicamente se resalta el perímetro de la provincia en cuestión
+                    layer.on('mouseover', function(e) {
+                        if (selectedProvinceIn1 !== p.in1) {
+                            this.setStyle({
+                                weight: 2.5,
+                                color: '#1d4ed8',
+                                fillColor: '#2563eb',
+                                fillOpacity: 0.20,
+                                dashArray: ''
+                            });
+                            this.bringToFront();
+                        }
+                    });
+
+                    layer.on('mouseout', function(e) {
+                        if (selectedProvinceIn1 !== p.in1) {
+                            layer_provincias.resetStyle(this);
+                        }
+                    });
+
+                    layer.on('click', function(e) {
+                        L.DomEvent.stopPropagation(e);
+                        selectProvince(p.in1, true, true);
+                    });
+                }
+            });
+
+            layer_provincias.addTo(map);
+            initialArgentinaBounds = ARGENTINA_BOUNDS;
+            fitToArgentina(false);
+            renderSidebarProvinces();
+        }
+
+        // Cargar Capa de Iglesias
+        function initIglesiasLayer(geojsonData) {
+            iglesiasData = geojsonData;
+            churchMarkers = [];
+            var validFeaturesCount = 0;
+            var invalidFeaturesCount = 0;
+
+            layer_iglesias = L.geoJson(geojsonData, {
+                pane: 'pane_iglesias',
+                filter: function(feature) {
+                    var ok = isValidCoordinate(feature.geometry && feature.geometry.coordinates);
+                    if (ok) {
+                        validFeaturesCount++;
+                        return true;
+                    } else {
+                        invalidFeaturesCount++;
+                        return false;
+                    }
+                },
+                pointToLayer: function(feature, latlng) {
+                    var p = feature.properties;
+                    var marker = L.circleMarker(latlng, {
+                        pane: 'pane_iglesias',
+                        radius: 5.5,
+                        fillColor: "#2563eb",
+                        color: "#ffffff",
+                        weight: 1.5,
+                        opacity: 1,
+                        fillOpacity: 0.88
+                    });
+
+                    var rawCity = p.CIUDAD || p.Ciudad || '';
+                    var cName = formatCityName(rawCity);
+
+                    churchMarkers.push({
+                        layer: marker,
+                        feature: feature,
+                        in1: p.PROVINCIA_IN1,
+                        cityName: cName,
+                        lat: latlng.lat,
+                        lng: latlng.lng
+                    });
+
+                    return marker;
+                },
+                onEachFeature: function(feature, layer) {
+                    var popupHtml = buildPopupContent(feature);
+                    layer.bindPopup(popupHtml, { maxHeight: 380, maxWidth: 300 });
+
+                    layer.on('mouseover', function() {
+                        this.setStyle({ radius: 8, fillColor: "#1d4ed8", weight: 2.5 });
+                    });
+                    layer.on('mouseout', function() {
+                        if (selectedCityName) {
+                            var item = churchMarkers.find(m => m.layer === this);
+                            if (item && item.cityName === selectedCityName) {
+                                this.setStyle({ radius: 7, fillColor: "#2563eb", weight: 2, fillOpacity: 0.95 });
+                            } else {
+                                this.setStyle({ radius: 3.5, fillColor: "#94a3b8", weight: 0.5, fillOpacity: 0.1 });
+                            }
+                        } else if (selectedProvinceIn1) {
+                            var item = churchMarkers.find(m => m.layer === this);
+                            if (item && item.in1 === selectedProvinceIn1) {
+                                this.setStyle({ radius: 6, fillColor: "#2563eb", weight: 2, fillOpacity: 0.92 });
+                            } else {
+                                this.setStyle({ radius: 3.5, fillColor: "#94a3b8", weight: 0.5, fillOpacity: 0.1 });
+                            }
+                        } else {
+                            this.setStyle({ radius: 5.5, fillColor: "#2563eb", weight: 1.5, fillOpacity: 0.88 });
+                        }
+                    });
+                }
+            });
+
+            layer_iglesias.addTo(map);
+            totalIglesiasCount = validFeaturesCount + invalidFeaturesCount;
+
+            document.getElementById('totalChurchesCount').innerText = totalIglesiasCount.toLocaleString() + ' iglesias';
+            updateStatsBadge();
+            renderSidebarProvinces();
+        }
+
+        // Obtener ciudades agrupadas y ordenadas para una provincia
+        function getCitiesForProvince(in1) {
+            var cityMap = {};
+            churchMarkers.forEach(function(item) {
+                if (item.in1 === in1) {
+                    var cName = item.cityName || 'Localidad sin especificar';
+                    if (!cityMap[cName]) {
+                        cityMap[cName] = {
+                            name: cName,
+                            count: 0,
+                            churches: []
+                        };
+                    }
+                    cityMap[cName].count++;
+                    cityMap[cName].churches.push(item);
+                }
+            });
+
+            var cities = Object.values(cityMap);
+            cities.sort(function(a, b) {
+                return b.count - a.count; // Orden descendente por iglesias
+            });
+            return cities;
+        }
+
+        // Actualizar el badge de estado superior
+        function updateStatsBadge() {
+            var badgeText = '';
+            if (selectedProvinceIn1) {
+                var pLayer = provinceLayersMap[selectedProvinceIn1];
+                var pProps = pLayer ? pLayer.feature.properties : null;
+                var pName = pProps ? pProps.nam : 'Provincia';
+                var pCount = pProps ? (pProps.iglesias_count || 0) : 0;
+                
+                if (selectedCityName) {
+                    badgeText = pName + ' › ' + selectedCityName;
+                } else {
+                    badgeText = pName + ': ' + pCount + ' iglesias';
+                }
+            } else {
+                badgeText = totalIglesiasCount.toLocaleString() + ' iglesias en Argentina';
+            }
+            document.getElementById('statsText').innerText = badgeText;
+        }
+
+        // Renderizar elementos de la lista en la barra lateral (meramente por cantidad)
+        function renderSidebarProvinces() {
+            if (!provinciasData) return;
+            var listEl = document.getElementById('provinceList');
+            listEl.innerHTML = '';
+
+            var filterQuery = cleanString(document.getElementById('provSearchInput').value);
+            var features = provinciasData.features.slice();
+
+            // Orden meramente por cantidad de iglesias descendente
+            features.sort(function(a, b) {
+                return (b.properties.iglesias_count || 0) - (a.properties.iglesias_count || 0);
+            });
+
+            var maxCount = features.length > 0 ? (features[0].properties.iglesias_count || 1) : 1;
+            var visibleCount = 0;
+
+            features.forEach(function(feat) {
+                var p = feat.properties;
+                var nameClean = cleanString(p.nam);
+                var cities = getCitiesForProvince(p.in1);
+
+                // Si hay búsqueda, verificar si coincide la provincia o alguna de sus ciudades
+                var matchedCities = [];
+                if (filterQuery) {
+                    var provMatches = nameClean.includes(filterQuery);
+                    matchedCities = cities.filter(c => cleanString(c.name).includes(filterQuery));
+                    if (!provMatches && matchedCities.length === 0) {
+                        return; // Ocultar si ni provincia ni ciudades coinciden
+                    }
+                }
+
+                visibleCount++;
+                var count = p.iglesias_count || 0;
+                var percent = totalIglesiasCount > 0 ? ((count / totalIglesiasCount) * 100).toFixed(1) : 0;
+                var progressWidth = Math.min(100, Math.round((count / maxCount) * 100));
+
+                var isSelected = (selectedProvinceIn1 === p.in1);
+                var isExpanded = isSelected || (filterQuery && matchedCities.length > 0);
+
+                var card = document.createElement('div');
+                card.className = 'prov-card' + (isSelected ? ' selected' : '') + (isExpanded ? ' expanded' : '');
+                card.id = 'provCard_' + p.in1;
+
+                // Cabecera de la provincia (sin números #1, #2)
+                var header = document.createElement('div');
+                header.className = 'prov-card-header';
+                header.innerHTML = 
+                    '<div class="prov-card-progress" style="width: ' + progressWidth + '%;"></div>' +
+                    '<div class="prov-card-info">' +
+                        '<span class="prov-name" title="' + p.nam + '">' + p.nam + '</span>' +
+                        (cities.length > 0 ? '<i class="fa fa-chevron-down prov-chevron"></i>' : '') +
+                    '</div>' +
+                    '<div class="prov-count-wrap">' +
+                        '<span class="prov-count-badge">' + count + '</span>' +
+                        '<span class="prov-percent">' + percent + '%</span>' +
+                    '</div>';
+
+                // Hover en cabecera resalta el polígono
+                header.addEventListener('mouseenter', function() {
+                    var l = provinceLayersMap[p.in1];
+                    if (l && selectedProvinceIn1 !== p.in1) {
+                        l.setStyle({
+                            weight: 2.5,
+                            color: '#1d4ed8',
+                            fillColor: '#2563eb',
+                            fillOpacity: 0.20,
+                            dashArray: ''
+                        });
+                        l.bringToFront();
+                    }
+                });
+
+                header.addEventListener('mouseleave', function() {
+                    var l = provinceLayersMap[p.in1];
+                    if (l && selectedProvinceIn1 !== p.in1) {
+                        layer_provincias.resetStyle(l);
+                    }
+                });
+
+                // Clic en la provincia: selecciona, encuadra y despliega sus ciudades
+                header.addEventListener('click', function(e) {
+                    if (selectedProvinceIn1 === p.in1) {
+                        // Alternar colapso si ya está seleccionada
+                        card.classList.toggle('expanded');
+                    } else {
+                        selectProvince(p.in1, true, true);
+                    }
+                });
+
+                card.appendChild(header);
+
+                // Sub-lista desplegable de ciudades y localidades
+                if (cities.length > 0) {
+                    var accordion = document.createElement('div');
+                    accordion.className = 'city-accordion';
+                    accordion.id = 'cityAccordion_' + p.in1;
+
+                    cities.forEach(function(city) {
+                        var cityRow = document.createElement('div');
+                        cityRow.className = 'city-row' + (selectedCityName === city.name && isSelected ? ' active' : '');
+                        cityRow.innerHTML = 
+                            '<span class="city-row-name"><i class="fa fa-map-marker-alt"></i> ' + city.name + '</span>' +
+                            '<span class="city-row-count">' + city.count + '</span>';
+
+                        // Clic en ciudad: centra el mapa en esa localidad y destaca sus iglesias
+                        cityRow.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            selectCity(p.in1, city);
+                        });
+
+                        accordion.appendChild(cityRow);
+                    });
+
+                    card.appendChild(accordion);
+                }
+
+                listEl.appendChild(card);
+            });
+
+            document.getElementById('filteredStatsLabel').innerText = visibleCount + ' de ' + features.length + ' provincias';
+        }
+
+        // Seleccionar una ciudad y centrar en ella
+        function selectCity(in1, cityObj) {
+            selectedProvinceIn1 = in1;
+            selectedCityName = cityObj.name;
+
+            // Asegurar que la tarjeta de provincia esté seleccionada y expandida
+            document.querySelectorAll('.prov-card').forEach(function(c) {
+                c.classList.remove('selected');
+            });
+            var activeCard = document.getElementById('provCard_' + in1);
+            if (activeCard) {
+                activeCard.classList.add('selected', 'expanded');
+            }
+
+            // Marcar fila de ciudad activa
+            document.querySelectorAll('.city-row').forEach(function(r) {
+                r.classList.remove('active');
+            });
+            if (activeCard) {
+                var rows = activeCard.querySelectorAll('.city-row');
+                rows.forEach(function(r) {
+                    if (r.textContent.includes(cityObj.name)) {
+                        r.classList.add('active');
+                    }
+                });
+            }
+
+            var pLayer = provinceLayersMap[in1];
+            var pProps = pLayer ? pLayer.feature.properties : null;
+            var pName = pProps ? pProps.nam : 'Provincia';
+
+            // Actualizar banner activo
+            var banner = document.getElementById('activeFilterBanner');
+            banner.classList.add('show');
+            document.getElementById('activeFilterName').innerHTML = pName + ' &rsaquo; <strong>' + cityObj.name + '</strong> (' + cityObj.count + ')';
+
+            // Resaltar provincia en el mapa
+            if (layer_provincias) {
+                layer_provincias.eachLayer(function(l) {
+                    layer_provincias.resetStyle(l);
+                });
+                if (pLayer) {
+                    pLayer.setStyle({
+                        weight: 2.5,
+                        color: '#1d4ed8',
+                        fillColor: '#2563eb',
+                        fillOpacity: 0.15,
+                        dashArray: ''
+                    });
+                    pLayer.bringToFront();
+                }
+            }
+
+            // Destacar únicamente las iglesias de esta ciudad
+            var isMobile = window.innerWidth <= 768;
+            var validLatLngs = [];
+
+            churchMarkers.forEach(function(item) {
+                if (item.in1 === in1 && item.cityName === cityObj.name) {
+                    item.layer.setStyle({
+                        radius: 7.5,
+                        fillColor: "#2563eb",
+                        color: "#ffffff",
+                        weight: 2.5,
+                        opacity: 1,
+                        fillOpacity: 0.95
+                    });
+                    item.layer.bringToFront();
+                    validLatLngs.push([item.lat, item.lng]);
+                } else {
+                    item.layer.setStyle({
+                        radius: 3.5,
+                        fillColor: "#94a3b8",
+                        color: "#cbd5e1",
+                        weight: 0.5,
+                        opacity: 0.25,
+                        fillOpacity: 0.08
+                    });
+                }
+            });
+
+            // Centrar y hacer zoom en la ciudad
+            if (validLatLngs.length > 1) {
+                var cityBounds = L.latLngBounds(validLatLngs);
+                map.fitBounds(cityBounds, {
+                    paddingTopLeft: isMobile ? [20, 20] : [350, 40],
+                    paddingBottomRight: [40, 40],
+                    maxZoom: 14,
+                    animate: true,
+                    duration: 0.8
+                });
+            } else if (validLatLngs.length === 1) {
+                map.setView(validLatLngs[0], 14, { animate: true, duration: 0.8 });
+                if (cityObj.churches[0] && cityObj.churches[0].layer) {
+                    cityObj.churches[0].layer.openPopup();
+                }
+            }
+
+            updateStatsBadge();
+        }
+
+        // Seleccionar una provincia (Interacción mapa <-> sidebar)
+        function selectProvince(in1, zoomTo, expandAccordion) {
+            selectedProvinceIn1 = in1;
+            selectedCityName = null; // Limpiar filtro de ciudad específico para ver toda la provincia
+            var targetLayer = provinceLayersMap[in1];
+
+            if (!targetLayer) return;
+
+            var props = targetLayer.feature.properties;
+
+            // Actualizar banner activo
+            var banner = document.getElementById('activeFilterBanner');
+            banner.classList.add('show');
+            document.getElementById('activeFilterName').innerText = props.nam + ' (' + (props.iglesias_count || 0) + ')';
+
+            // Actualizar estilo en mapa de provincias
+            if (layer_provincias) {
+                layer_provincias.eachLayer(function(l) {
+                    layer_provincias.resetStyle(l);
+                });
+                targetLayer.setStyle({
+                    weight: 3,
+                    color: '#1d4ed8',
+                    fillColor: '#2563eb',
+                    fillOpacity: 0.25,
+                    dashArray: ''
+                });
+                targetLayer.bringToFront();
+            }
+
+            // Filtrar y destacar iglesias de la provincia
+            churchMarkers.forEach(function(item) {
+                if (item.in1 === in1) {
+                    item.layer.setStyle({
+                        radius: 6,
+                        fillColor: "#2563eb",
+                        color: "#ffffff",
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.92
+                    });
+                    item.layer.bringToFront();
+                } else {
+                    item.layer.setStyle({
+                        radius: 3.5,
+                        fillColor: "#94a3b8",
+                        color: "#cbd5e1",
+                        weight: 0.5,
+                        opacity: 0.3,
+                        fillOpacity: 0.1
+                    });
+                }
+            });
+
+            // Resaltar tarjeta y desplegar ciudades
+            document.querySelectorAll('.prov-card').forEach(function(c) {
+                c.classList.remove('selected');
+            });
+            var activeCard = document.getElementById('provCard_' + in1);
+            if (activeCard) {
+                activeCard.classList.add('selected');
+                if (expandAccordion) {
+                    activeCard.classList.add('expanded');
+                }
+                activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            // Limpiar selección de ciudad previa
+            document.querySelectorAll('.city-row').forEach(function(r) {
+                r.classList.remove('active');
+            });
+
+            // Zoom hacia la provincia (considerando ancho de barra lateral)
+            if (zoomTo && targetLayer.getBounds().isValid()) {
+                var isMobile = window.innerWidth <= 768;
+                map.fitBounds(targetLayer.getBounds(), {
+                    paddingTopLeft: isMobile ? [20, 20] : [350, 30],
+                    paddingBottomRight: [30, 30],
+                    maxZoom: 12,
+                    animate: true,
+                    duration: 0.8
+                });
+            }
+
+            updateStatsBadge();
+        }
+
+        // Limpiar selección (volver a vista general del país)
+        function clearProvinceSelection() {
+            selectedProvinceIn1 = null;
+            selectedCityName = null;
+
+            document.getElementById('activeFilterBanner').classList.remove('show');
+
+            if (layer_provincias) {
+                layer_provincias.eachLayer(function(l) {
+                    layer_provincias.resetStyle(l);
+                });
+            }
+
+            churchMarkers.forEach(function(item) {
+                item.layer.setStyle({
+                    radius: 5.5,
+                    fillColor: "#2563eb",
+                    color: "#ffffff",
+                    weight: 1.5,
+                    opacity: 1,
+                    fillOpacity: 0.88
+                });
+            });
+
+            document.querySelectorAll('.prov-card').forEach(function(c) {
+                c.classList.remove('selected', 'expanded');
+            });
+            document.querySelectorAll('.city-row').forEach(function(r) {
+                r.classList.remove('active');
+            });
+
+            updateStatsBadge();
+        }
+
+        // Búsqueda en tiempo real
+        var searchInput = document.getElementById('provSearchInput');
+        var clearSearchBtn = document.getElementById('searchClearBtn');
+
+        searchInput.addEventListener('input', function() {
+            if (this.value.trim().length > 0) {
+                clearSearchBtn.style.display = 'block';
+            } else {
+                clearSearchBtn.style.display = 'none';
+            }
+            renderSidebarProvinces();
+        });
+
+        clearSearchBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            clearSearchBtn.style.display = 'none';
+            searchInput.focus();
+            renderSidebarProvinces();
+        });
+
+        // Botón limpiar filtro
+        document.getElementById('clearFilterLink').addEventListener('click', function() {
+            clearProvinceSelection();
+            fitToArgentina(true);
+        });
+
+        // Botón todo el país (footer)
+        document.getElementById('resetMapBoundsBtn').addEventListener('click', function() {
+            clearProvinceSelection();
+            fitToArgentina(true);
+        });
+
+        // Control de Capas
+        function setupLayersControl() {
+            var baseMaps = {
+                "Mapa IGN Argenmap": layer_MapaIGN_0,
+                "OpenStreetMap": layer_OSM
+            };
+            var overlayMaps = {
+                "División Provincial": layer_provincias,
+                "Iglesias": layer_iglesias
+            };
+            L.control.layers(baseMaps, overlayMaps, { collapsed: true, position: 'topright' }).addTo(map);
+        }
+
+        // Cargar Provincias
+        if (typeof json_provincias_arg !== 'undefined') {
+            initProvinciasLayer(json_provincias_arg);
+        } else {
+            fetch('data/provincias_arg.geojson')
+                .then(function(res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function(data) {
+                    initProvinciasLayer(data);
+                })
+                .catch(function(err) {
+                    console.error('Error al cargar provincias:', err);
+                });
+        }
+
+        // Cargar Iglesias
+        if (typeof json_iglesias_nacion !== 'undefined') {
+            initIglesiasLayer(json_iglesias_nacion);
+            setupLayersControl();
+        } else {
+            fetch('data/iglesias_nacion.geojson')
+                .then(function(res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function(data) {
+                    initIglesiasLayer(data);
+                    setupLayersControl();
+                })
+                .catch(function(err) {
+                    console.error('Error al cargar iglesias:', err);
+                    document.getElementById('statsText').innerText = 'Error al cargar datos';
+                });
         }
         </script>        
     </body>
