@@ -30,14 +30,20 @@
         html, body, #map {
             width: 100%;
             height: 100%;
+            height: 100dvh;
             padding: 0;
             margin: 0;
             overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #f1f5f9;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        /* Leaflet Controls Column (Top Left) */
+        .leaflet-container {
+            padding-right: 0 !important;
+        }
+
+        /* Leaflet Controls Column (Top Left & Top Right) */
         .leaflet-top.leaflet-left {
             top: 14px;
             left: 14px;
@@ -45,6 +51,10 @@
         }
         body.sidebar-open .leaflet-top.leaflet-left {
             left: 366px;
+        }
+        .leaflet-top.leaflet-right {
+            top: 54px;
+            right: 4px;
         }
 
         /* Leaflet Native Sidebar Toggle Control */
@@ -54,7 +64,7 @@
             height: 30px;
             line-height: 30px;
             text-align: center;
-            color: #334155;
+            color: #334155 !important;
             font-size: 14px;
             display: flex;
             align-items: center;
@@ -63,13 +73,19 @@
             text-decoration: none;
             transition: all 0.15s ease;
         }
+        .leaflet-touch .leaflet-control-sidebar-toggle a {
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+        }
         .leaflet-control-sidebar-toggle a:hover {
             background-color: #f8fafc;
-            color: var(--primary);
+            color: var(--primary) !important;
         }
-        body.sidebar-open .leaflet-control-sidebar-toggle a {
+        body.sidebar-open .leaflet-control-sidebar-toggle a,
+        body.sidebar-open .leaflet-control-sidebar-toggle a i {
             background-color: #eff6ff;
-            color: var(--primary);
+            color: var(--primary) !important;
         }
 
         /* Header Info Badge (Top Right) */
@@ -92,10 +108,18 @@
             gap: 8px;
             pointer-events: auto;
             user-select: none;
+            max-width: calc(100vw - 90px);
+            box-sizing: border-box;
+        }
+        .map-header-badge #statsText {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .map-header-badge .badge-dot {
             width: 10px;
             height: 10px;
+            flex-shrink: 0;
             background-color: var(--primary);
             border-radius: 50%;
             display: inline-block;
@@ -245,10 +269,12 @@
 
         /* Province List Container */
         .province-list {
-            flex: 1 1 0px;
+            flex: 1 1 0%;
             min-height: 0;
             overflow-y: auto;
             overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
             padding: 8px 10px;
             display: flex;
             flex-direction: column;
@@ -387,6 +413,7 @@
             padding: 6px 10px 8px;
             max-height: 220px;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             flex-direction: column;
             gap: 4px;
             z-index: 2;
@@ -440,10 +467,10 @@
         }
         .city-row-name i {
             font-size: 11px;
-            color: #64748b;
+            color: #64748b !important;
         }
         .city-row.active .city-row-name i {
-            color: #ffffff;
+            color: #ffffff !important;
         }
         .city-row-count {
             font-size: 11px;
@@ -494,8 +521,8 @@
             font-size: 13px;
             line-height: 1.45;
             color: #334155;
-            min-width: 220px;
-            max-width: 290px;
+            min-width: 200px;
+            max-width: 280px;
         }
         .church-popup-title {
             font-size: 14px;
@@ -521,25 +548,138 @@
             color: #1e293b;
         }
 
+        /* Mobile Handle & Floating Open Pill (hidden on desktop) */
+        .sidebar-mobile-handle {
+            display: none;
+            width: 38px;
+            height: 4px;
+            background: #cbd5e1;
+            border-radius: 4px;
+            margin: 0 auto 8px;
+        }
+        .mobile-open-pill {
+            display: none;
+            position: absolute;
+            bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1001;
+            background: var(--primary);
+            color: #ffffff;
+            border: none;
+            border-radius: 999px;
+            padding: 10px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.38);
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+        .mobile-open-pill i {
+            color: #ffffff !important;
+            font-size: 13px;
+        }
+        .mobile-open-pill:active {
+            transform: translateX(-50%) scale(0.96);
+        }
+
         /* Mobile Optimization */
         @media (max-width: 768px) {
+            .leaflet-top.leaflet-left {
+                top: 10px;
+                left: 10px;
+            }
+            body.sidebar-open .leaflet-top.leaflet-left {
+                left: 10px;
+            }
+            .leaflet-top.leaflet-right {
+                top: 46px;
+                right: 2px;
+            }
+            .map-header-badge {
+                top: 10px;
+                right: 10px;
+                font-size: 11.5px;
+                padding: 6px 10px;
+                max-width: calc(100vw - 72px);
+            }
+            .leaflet-control-search input {
+                max-width: calc(100vw - 115px) !important;
+                font-size: 16px !important;
+            }
+
+            /* Bottom Sheet Sidebar with explicit height so flex list never collapses */
             .sidebar-panel {
-                width: calc(100% - 24px);
-                max-height: 52%;
+                width: calc(100% - 16px);
+                height: 48vh;
+                height: 48dvh;
+                max-height: calc(100dvh - 70px);
                 top: auto;
-                bottom: 12px;
-                left: 12px;
-                transform: translateY(110%);
+                bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+                left: 8px;
+                border-radius: 16px;
+                transform: translateY(calc(100% + 24px));
             }
             body.sidebar-open .sidebar-panel {
                 transform: translateY(0);
             }
-            body.sidebar-open .leaflet-top.leaflet-left {
-                left: 14px;
+            .sidebar-mobile-handle {
+                display: block;
             }
-            .map-header-badge {
+            .sidebar-header {
+                padding: 10px 14px 8px;
+                cursor: pointer;
+            }
+            .sidebar-title {
+                font-size: 15px;
+            }
+            .sidebar-subtitle {
                 font-size: 11px;
+                margin-top: 3px;
+            }
+            .sidebar-tools {
+                padding: 8px 12px;
+            }
+            /* 16px prevents iOS Safari / Android Chrome auto-zoom on focus */
+            .search-input {
+                font-size: 16px;
+                padding: 7px 28px 7px 30px;
+            }
+            .prov-card-header {
+                padding: 10px 12px;
+                min-height: 42px;
+            }
+            .city-row {
+                min-height: 34px;
                 padding: 6px 10px;
+                font-size: 13px;
+            }
+            .city-accordion {
+                max-height: 180px;
+            }
+            .sidebar-footer {
+                padding: 8px 12px;
+            }
+            .reset-all-btn {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+            .church-popup-content {
+                min-width: 180px;
+                max-width: calc(100vw - 80px);
+                font-size: 12.5px;
+            }
+
+            /* Show floating button when bottom sheet is closed */
+            body:not(.sidebar-open) .mobile-open-pill {
+                display: flex;
+            }
+            /* Keep attribution above floating pill when sidebar is closed */
+            .leaflet-bottom.leaflet-right {
+                margin-bottom: env(safe-area-inset-bottom, 0px);
             }
         }
         </style>
@@ -553,9 +693,16 @@
             <span id="statsText">Cargando datos...</span>
         </div>
 
+        <!-- Botón flotante inferior en móviles para abrir el panel cómodamente -->
+        <button class="mobile-open-pill" id="mobileOpenSidebarBtn" type="button">
+            <i class="fa fa-list-ul"></i>
+            <span id="mobileOpenPillText">Provincias y ciudades</span>
+        </button>
+
         <!-- Menú / Barra Lateral de Provincias -->
         <aside class="sidebar-panel" id="sidebar">
-            <div class="sidebar-header">
+            <div class="sidebar-header" id="sidebarHeader">
+                <div class="sidebar-mobile-handle"></div>
                 <div class="sidebar-header-top">
                     <h2 class="sidebar-title">División Provincial</h2>
                     <button class="sidebar-close-btn" id="sidebarCloseBtn" title="Ocultar panel">
@@ -564,7 +711,7 @@
                 </div>
                 <div class="sidebar-subtitle">
                     <span id="totalChurchesCount">1.097 iglesias</span>
-                    <span>24 provincias</span>
+                    <span>23 provincias</span>
                 </div>
             </div>
 
@@ -588,7 +735,7 @@
 
             <!-- Footer con botón de reset de encuadre al país -->
             <div class="sidebar-footer">
-                <span id="filteredStatsLabel">24 provincias</span>
+                <span id="filteredStatsLabel">23 provincias</span>
                 <button class="reset-all-btn" id="resetMapBoundsBtn" title="Reencuadrar mapa al centro del país">
                     <i class="fa fa-compress-arrows-alt"></i> Todo el país
                 </button>
@@ -627,12 +774,35 @@
             maxZoom: 28, 
             minZoom: 3,
             zoomSnap: 0.25,
+            zoomDelta: 1,
+            wheelPxPerZoomLevel: 26,
+            wheelDebounceTime: 20,
             center: ARGENTINA_CENTER,
             zoom: 4
         });
         
         map.attributionControl.setPrefix('<a href="https://leafletjs.com" title="Leaflet">Leaflet</a> &middot; <a href="https://wms.ign.gob.ar" target="_blank">IGN Argentina</a>');
         var autolinker = new Autolinker({truncate: {length: 35, location: 'smart'}});
+
+        // 1° en prioridad: Botón integrado en la barra de controles para abrir/cerrar el panel de provincias
+        var SidebarToggleControl = L.Control.extend({
+            options: { position: 'topleft' },
+            onAdd: function(map) {
+                var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-sidebar-toggle');
+                var link = L.DomUtil.create('a', '', container);
+                link.href = '#';
+                link.title = 'Mostrar / Ocultar División Provincial';
+                link.id = 'sidebarToggleLeafletBtn';
+                link.innerHTML = '<i class="fa fa-bars"></i>';
+                L.DomEvent.disableClickPropagation(container);
+                L.DomEvent.on(link, 'click', function(e) {
+                    L.DomEvent.preventDefault(e);
+                    toggleSidebar();
+                });
+                return container;
+            }
+        });
+        map.addControl(new SidebarToggleControl());
 
         // Control de Zoom y Localización integrados en topleft
         var zoomControl = L.control.zoom({ position: 'topleft' }).addTo(map);
@@ -696,26 +866,6 @@
             }
         }
 
-        // Botón integrado en la barra de controles de Leaflet para abrir/cerrar el panel de provincias
-        var SidebarToggleControl = L.Control.extend({
-            options: { position: 'topleft' },
-            onAdd: function(map) {
-                var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-sidebar-toggle');
-                var link = L.DomUtil.create('a', '', container);
-                link.href = '#';
-                link.title = 'Mostrar / Ocultar División Provincial';
-                link.id = 'sidebarToggleLeafletBtn';
-                link.innerHTML = '<i class="fa fa-bars"></i>';
-                L.DomEvent.disableClickPropagation(container);
-                L.DomEvent.on(link, 'click', function(e) {
-                    L.DomEvent.preventDefault(e);
-                    toggleSidebar();
-                });
-                return container;
-            }
-        });
-        map.addControl(new SidebarToggleControl());
-
         function toggleSidebar(forceState) {
             if (typeof forceState === 'boolean') {
                 if (forceState) {
@@ -728,9 +878,33 @@
             }
         }
 
-        document.getElementById('sidebarCloseBtn').addEventListener('click', function() {
+        document.getElementById('sidebarCloseBtn').addEventListener('click', function(e) {
+            e.stopPropagation();
             toggleSidebar(false);
         });
+
+        document.getElementById('mobileOpenSidebarBtn').addEventListener('click', function() {
+            toggleSidebar(true);
+        });
+
+        // Permitir cerrar el panel en móvil deslizando hacia abajo desde el encabezado
+        (function setupMobileSwipeDown() {
+            var headerEl = document.getElementById('sidebarHeader');
+            var startY = 0;
+            headerEl.addEventListener('touchstart', function(e) {
+                if (e.touches && e.touches.length === 1) {
+                    startY = e.touches[0].clientY;
+                }
+            }, { passive: true });
+            headerEl.addEventListener('touchend', function(e) {
+                if (window.innerWidth <= 768 && e.changedTouches && e.changedTouches.length === 1) {
+                    var deltaY = e.changedTouches[0].clientY - startY;
+                    if (deltaY > 35) {
+                        toggleSidebar(false);
+                    }
+                }
+            }, { passive: true });
+        })();
 
         // Capas base de teselas
         map.createPane('pane_MapaIGN_0');
@@ -771,13 +945,24 @@
         var totalIglesiasCount = 0;
         var initialArgentinaBounds = ARGENTINA_BOUNDS;
 
+        function getMobileBottomPadding() {
+            var isMobile = window.innerWidth <= 768;
+            if (!isMobile) return 30;
+            var isSidebarOpen = document.body.classList.contains('sidebar-open');
+            if (!isSidebarOpen) return 60;
+            var sidebarEl = document.getElementById('sidebar');
+            var h = sidebarEl ? sidebarEl.offsetHeight : Math.round(window.innerHeight * 0.48);
+            return h + 20;
+        }
+
         function fitToArgentina(animate) {
             var isMobile = window.innerWidth <= 768;
             var isSidebarOpen = document.body.classList.contains('sidebar-open');
-            var padLeft = isMobile ? 15 : (isSidebarOpen ? 180 : 30);
+            var padLeft = isMobile ? 16 : (isSidebarOpen ? 350 : 30);
+            var padBottom = getMobileBottomPadding();
             map.fitBounds(ARGENTINA_BOUNDS, {
-                paddingTopLeft: [padLeft, 20],
-                paddingBottomRight: [25, 20],
+                paddingTopLeft: [padLeft, isMobile ? 48 : 20],
+                paddingBottomRight: [isMobile ? 16 : 25, padBottom],
                 animate: animate !== false
             });
         }
@@ -857,6 +1042,7 @@
                     pane: 'pane_provincias',
                     weight: 3,
                     color: '#1d4ed8',
+                    opacity: 1,
                     fillColor: '#2563eb',
                     fillOpacity: 0.25,
                     dashArray: ''
@@ -873,6 +1059,47 @@
             };
         }
 
+        // Resaltar únicamente la provincia bajo el cursor, limpiando cualquier otra que haya quedado activa por movimiento rápido
+        function highlightProvinceHover(hoveredIn1) {
+            if (!layer_provincias) return;
+            layer_provincias.eachLayer(function(l) {
+                var code = l.feature && l.feature.properties ? l.feature.properties.in1 : null;
+                if (code === selectedProvinceIn1) {
+                    l.setStyle({
+                        weight: 3,
+                        color: '#1d4ed8',
+                        opacity: 1,
+                        fillColor: '#2563eb',
+                        fillOpacity: (selectedCityName ? 0.15 : 0.25),
+                        dashArray: ''
+                    });
+                } else if (hoveredIn1 && code === hoveredIn1) {
+                    l.setStyle({
+                        weight: 2.5,
+                        color: '#1d4ed8',
+                        opacity: 1,
+                        fillColor: '#2563eb',
+                        fillOpacity: 0.20,
+                        dashArray: ''
+                    });
+                } else {
+                    l.setStyle({
+                        weight: 1.5,
+                        color: '#2563eb',
+                        opacity: 0.65,
+                        fillColor: '#3b82f6',
+                        fillOpacity: 0.05,
+                        dashArray: '3, 3'
+                    });
+                }
+            });
+        }
+
+        // Si el mouse sale del contenedor del mapa, limpiar cualquier hover residual
+        document.getElementById('map').addEventListener('mouseleave', function() {
+            highlightProvinceHover(null);
+        });
+
         // Cargar Capa Provincial
         function initProvinciasLayer(geojsonData) {
             provinciasData = geojsonData;
@@ -884,29 +1111,23 @@
                     var p = feature.properties;
                     provinceLayersMap[p.in1] = layer;
 
-                    // Hover y click: únicamente se resalta el perímetro de la provincia en cuestión
+                    // Hover y click: limpia todas las demás provincias antes de resaltar la actual
                     layer.on('mouseover', function(e) {
-                        if (selectedProvinceIn1 !== p.in1) {
-                            this.setStyle({
-                                weight: 2.5,
-                                color: '#1d4ed8',
-                                fillColor: '#2563eb',
-                                fillOpacity: 0.20,
-                                dashArray: ''
-                            });
-                            this.bringToFront();
-                        }
+                        highlightProvinceHover(p.in1);
                     });
 
                     layer.on('mouseout', function(e) {
-                        if (selectedProvinceIn1 !== p.in1) {
-                            layer_provincias.resetStyle(this);
-                        }
+                        highlightProvinceHover(null);
                     });
 
                     layer.on('click', function(e) {
                         L.DomEvent.stopPropagation(e);
-                        selectProvince(p.in1, true, true);
+                        if (selectedProvinceIn1 === p.in1) {
+                            clearProvinceSelection();
+                            fitToArgentina(true);
+                        } else {
+                            selectProvince(p.in1, true, true);
+                        }
                     });
                 }
             });
@@ -915,6 +1136,27 @@
             initialArgentinaBounds = ARGENTINA_BOUNDS;
             fitToArgentina(false);
             renderSidebarProvinces();
+        }
+
+        var hoveredChurchLayer = null;
+        function resetMarkerStyle(markerLayer) {
+            if (!markerLayer) return;
+            var item = churchMarkers.find(function(m) { return m.layer === markerLayer; });
+            if (selectedCityName) {
+                if (item && item.in1 === selectedProvinceIn1 && item.cityName === selectedCityName) {
+                    markerLayer.setStyle({ radius: 7.5, fillColor: "#2563eb", color: "#ffffff", weight: 2.5, opacity: 1, fillOpacity: 0.95 });
+                } else {
+                    markerLayer.setStyle({ radius: 3.5, fillColor: "#94a3b8", color: "#cbd5e1", weight: 0.5, opacity: 0.25, fillOpacity: 0.08 });
+                }
+            } else if (selectedProvinceIn1) {
+                if (item && item.in1 === selectedProvinceIn1) {
+                    markerLayer.setStyle({ radius: 6, fillColor: "#2563eb", color: "#ffffff", weight: 2, opacity: 1, fillOpacity: 0.92 });
+                } else {
+                    markerLayer.setStyle({ radius: 3.5, fillColor: "#94a3b8", color: "#cbd5e1", weight: 0.5, opacity: 0.3, fillOpacity: 0.1 });
+                }
+            } else {
+                markerLayer.setStyle({ radius: 5.5, fillColor: "#2563eb", color: "#ffffff", weight: 1.5, opacity: 1, fillOpacity: 0.88 });
+            }
         }
 
         // Cargar Capa de Iglesias
@@ -964,29 +1206,31 @@
                 },
                 onEachFeature: function(feature, layer) {
                     var popupHtml = buildPopupContent(feature);
-                    layer.bindPopup(popupHtml, { maxHeight: 380, maxWidth: 300 });
+                    layer.bindPopup(popupHtml, {
+                        maxHeight: 340,
+                        maxWidth: Math.min(290, window.innerWidth - 56),
+                        autoPanPaddingTopLeft: [16, 56],
+                        autoPanPaddingBottomRight: [16, 60]
+                    });
+
+                    layer.on('click', function() {
+                        if (window.innerWidth <= 768 && document.body.classList.contains('sidebar-open')) {
+                            toggleSidebar(false);
+                        }
+                    });
 
                     layer.on('mouseover', function() {
+                        if (hoveredChurchLayer && hoveredChurchLayer !== this) {
+                            resetMarkerStyle(hoveredChurchLayer);
+                        }
+                        hoveredChurchLayer = this;
                         this.setStyle({ radius: 8, fillColor: "#1d4ed8", weight: 2.5 });
                     });
                     layer.on('mouseout', function() {
-                        if (selectedCityName) {
-                            var item = churchMarkers.find(m => m.layer === this);
-                            if (item && item.cityName === selectedCityName) {
-                                this.setStyle({ radius: 7, fillColor: "#2563eb", weight: 2, fillOpacity: 0.95 });
-                            } else {
-                                this.setStyle({ radius: 3.5, fillColor: "#94a3b8", weight: 0.5, fillOpacity: 0.1 });
-                            }
-                        } else if (selectedProvinceIn1) {
-                            var item = churchMarkers.find(m => m.layer === this);
-                            if (item && item.in1 === selectedProvinceIn1) {
-                                this.setStyle({ radius: 6, fillColor: "#2563eb", weight: 2, fillOpacity: 0.92 });
-                            } else {
-                                this.setStyle({ radius: 3.5, fillColor: "#94a3b8", weight: 0.5, fillOpacity: 0.1 });
-                            }
-                        } else {
-                            this.setStyle({ radius: 5.5, fillColor: "#2563eb", weight: 1.5, fillOpacity: 0.88 });
+                        if (hoveredChurchLayer === this) {
+                            hoveredChurchLayer = null;
                         }
+                        resetMarkerStyle(this);
                     });
                 }
             });
@@ -1024,9 +1268,10 @@
             return cities;
         }
 
-        // Actualizar el badge de estado superior
+        // Actualizar el badge de estado superior y botón flotante móvil
         function updateStatsBadge() {
             var badgeText = '';
+            var pillText = 'Provincias y ciudades';
             if (selectedProvinceIn1) {
                 var pLayer = provinceLayersMap[selectedProvinceIn1];
                 var pProps = pLayer ? pLayer.feature.properties : null;
@@ -1035,13 +1280,17 @@
                 
                 if (selectedCityName) {
                     badgeText = pName + ' › ' + selectedCityName;
+                    pillText = 'Lista (' + selectedCityName + ')';
                 } else {
                     badgeText = pName + ': ' + pCount + ' iglesias';
+                    pillText = 'Lista (' + pName + ')';
                 }
             } else {
                 badgeText = totalIglesiasCount.toLocaleString() + ' iglesias en Argentina';
             }
             document.getElementById('statsText').innerText = badgeText;
+            var pillEl = document.getElementById('mobileOpenPillText');
+            if (pillEl) pillEl.innerText = pillText;
         }
 
         // Renderizar elementos de la lista en la barra lateral (meramente por cantidad)
@@ -1078,7 +1327,6 @@
 
                 visibleCount++;
                 var count = p.iglesias_count || 0;
-                var percent = totalIglesiasCount > 0 ? ((count / totalIglesiasCount) * 100).toFixed(1) : 0;
                 var progressWidth = Math.min(100, Math.round((count / maxCount) * 100));
 
                 var isSelected = (selectedProvinceIn1 === p.in1);
@@ -1088,7 +1336,7 @@
                 card.className = 'prov-card' + (isSelected ? ' selected' : '') + (isExpanded ? ' expanded' : '');
                 card.id = 'provCard_' + p.in1;
 
-                // Cabecera de la provincia (sin números #1, #2)
+                // Cabecera de la provincia (sin porcentaje)
                 var header = document.createElement('div');
                 header.className = 'prov-card-header';
                 header.innerHTML = 
@@ -1099,36 +1347,22 @@
                     '</div>' +
                     '<div class="prov-count-wrap">' +
                         '<span class="prov-count-badge">' + count + '</span>' +
-                        '<span class="prov-percent">' + percent + '%</span>' +
                     '</div>';
 
-                // Hover en cabecera resalta el polígono
+                // Hover en cabecera resalta únicamente ese polígono y limpia los demás
                 header.addEventListener('mouseenter', function() {
-                    var l = provinceLayersMap[p.in1];
-                    if (l && selectedProvinceIn1 !== p.in1) {
-                        l.setStyle({
-                            weight: 2.5,
-                            color: '#1d4ed8',
-                            fillColor: '#2563eb',
-                            fillOpacity: 0.20,
-                            dashArray: ''
-                        });
-                        l.bringToFront();
-                    }
+                    highlightProvinceHover(p.in1);
                 });
 
                 header.addEventListener('mouseleave', function() {
-                    var l = provinceLayersMap[p.in1];
-                    if (l && selectedProvinceIn1 !== p.in1) {
-                        layer_provincias.resetStyle(l);
-                    }
+                    highlightProvinceHover(null);
                 });
 
-                // Clic en la provincia: selecciona, encuadra y despliega sus ciudades
+                // Clic en la provincia: si ya está activa se desactiva todo; si no, se activa
                 header.addEventListener('click', function(e) {
                     if (selectedProvinceIn1 === p.in1) {
-                        // Alternar colapso si ya está seleccionada
-                        card.classList.toggle('expanded');
+                        clearProvinceSelection();
+                        fitToArgentina(true);
                     } else {
                         selectProvince(p.in1, true, true);
                     }
@@ -1145,14 +1379,20 @@
                     cities.forEach(function(city) {
                         var cityRow = document.createElement('div');
                         cityRow.className = 'city-row' + (selectedCityName === city.name && isSelected ? ' active' : '');
+                        cityRow.dataset.cityName = city.name;
                         cityRow.innerHTML = 
                             '<span class="city-row-name"><i class="fa fa-map-marker-alt"></i> ' + city.name + '</span>' +
                             '<span class="city-row-count">' + city.count + '</span>';
 
-                        // Clic en ciudad: centra el mapa en esa localidad y destaca sus iglesias
+                        // Clic en ciudad: si ya está activa se desactiva todo; si no, se activa
                         cityRow.addEventListener('click', function(e) {
                             e.stopPropagation();
-                            selectCity(p.in1, city);
+                            if (selectedProvinceIn1 === p.in1 && selectedCityName === city.name) {
+                                clearProvinceSelection();
+                                fitToArgentina(true);
+                            } else {
+                                selectCity(p.in1, city);
+                            }
                         });
 
                         accordion.appendChild(cityRow);
@@ -1164,7 +1404,11 @@
                 listEl.appendChild(card);
             });
 
-            document.getElementById('filteredStatsLabel').innerText = visibleCount + ' de ' + features.length + ' provincias';
+            if (visibleCount === features.length) {
+                document.getElementById('filteredStatsLabel').innerText = '23 provincias';
+            } else {
+                document.getElementById('filteredStatsLabel').innerText = visibleCount + ' resultados';
+            }
         }
 
         // Seleccionar una ciudad y centrar en ella
@@ -1188,7 +1432,7 @@
             if (activeCard) {
                 var rows = activeCard.querySelectorAll('.city-row');
                 rows.forEach(function(r) {
-                    if (r.textContent.includes(cityObj.name)) {
+                    if (r.dataset.cityName === cityObj.name) {
                         r.classList.add('active');
                     }
                 });
@@ -1248,12 +1492,17 @@
                 }
             });
 
+            // En móvil, al elegir una ciudad cerramos el panel inferior para ver bien el mapa
+            if (isMobile) {
+                toggleSidebar(false);
+            }
+
             // Centrar y hacer zoom en la ciudad
             if (validLatLngs.length > 1) {
                 var cityBounds = L.latLngBounds(validLatLngs);
                 map.fitBounds(cityBounds, {
-                    paddingTopLeft: isMobile ? [20, 20] : [350, 40],
-                    paddingBottomRight: [40, 40],
+                    paddingTopLeft: isMobile ? [24, 56] : [350, 40],
+                    paddingBottomRight: isMobile ? [24, 70] : [40, 40],
                     maxZoom: 14,
                     animate: true,
                     duration: 0.8
@@ -1340,12 +1589,13 @@
                 r.classList.remove('active');
             });
 
-            // Zoom hacia la provincia (considerando ancho de barra lateral)
+            // Zoom hacia la provincia (considerando barra lateral en PC o panel inferior en móvil)
             if (zoomTo && targetLayer.getBounds().isValid()) {
                 var isMobile = window.innerWidth <= 768;
+                var padBottom = getMobileBottomPadding();
                 map.fitBounds(targetLayer.getBounds(), {
-                    paddingTopLeft: isMobile ? [20, 20] : [350, 30],
-                    paddingBottomRight: [30, 30],
+                    paddingTopLeft: isMobile ? [20, 52] : [350, 30],
+                    paddingBottomRight: isMobile ? [20, padBottom] : [30, 30],
                     maxZoom: 12,
                     animate: true,
                     duration: 0.8
@@ -1360,13 +1610,10 @@
             selectedProvinceIn1 = null;
             selectedCityName = null;
 
+            map.closePopup();
             document.getElementById('activeFilterBanner').classList.remove('show');
 
-            if (layer_provincias) {
-                layer_provincias.eachLayer(function(l) {
-                    layer_provincias.resetStyle(l);
-                });
-            }
+            highlightProvinceHover(null);
 
             churchMarkers.forEach(function(item) {
                 item.layer.setStyle({
@@ -1421,7 +1668,7 @@
             fitToArgentina(true);
         });
 
-        // Control de Capas
+        // Control de Capas en esquina superior derecha
         function setupLayersControl() {
             var baseMaps = {
                 "Mapa IGN Argenmap": layer_MapaIGN_0,
