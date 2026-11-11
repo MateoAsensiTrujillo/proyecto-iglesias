@@ -607,19 +607,19 @@
                 font-size: 16px !important;
             }
 
-            /* Bottom Sheet Sidebar integrada a los bordes inferiores */
+            /* Bottom Sheet Sidebar compacta e integrada a los bordes inferiores */
             .sidebar-panel {
                 width: 100%;
-                height: 48vh;
-                height: 48dvh;
-                max-height: calc(100dvh - 64px);
+                height: 32vh;
+                height: 32dvh;
+                max-height: 36dvh;
                 top: auto;
                 bottom: 0;
                 left: 0;
                 right: 0;
                 border-right: none;
                 border-top: 1px solid #cbd5e1;
-                border-radius: 16px 16px 0 0;
+                border-radius: 14px 14px 0 0;
                 padding-bottom: env(safe-area-inset-bottom, 0px);
                 box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.12);
                 transform: translateY(105%);
@@ -629,40 +629,41 @@
             }
             .sidebar-mobile-handle {
                 display: block;
+                margin: 0 auto 4px;
             }
             .sidebar-header {
-                padding: 10px 14px 8px;
+                padding: 6px 12px 6px;
                 cursor: pointer;
             }
             .sidebar-title {
-                font-size: 15px;
+                font-size: 14px;
             }
             .sidebar-subtitle {
-                font-size: 11px;
-                margin-top: 3px;
+                font-size: 10.5px;
+                margin-top: 2px;
             }
             .sidebar-tools {
-                padding: 8px 12px;
+                padding: 6px 10px;
             }
             /* 16px prevents iOS Safari / Android Chrome auto-zoom on focus */
             .search-input {
                 font-size: 16px;
-                padding: 7px 28px 7px 30px;
+                padding: 5px 26px 5px 28px;
             }
             .prov-card-header {
-                padding: 10px 12px;
-                min-height: 42px;
+                padding: 7px 10px;
+                min-height: 34px;
             }
             .city-row {
-                min-height: 34px;
-                padding: 6px 10px;
-                font-size: 13px;
+                min-height: 30px;
+                padding: 4px 8px;
+                font-size: 12.5px;
             }
             .city-accordion {
-                max-height: 180px;
+                max-height: 130px;
             }
             .sidebar-footer {
-                padding: 8px 12px;
+                padding: 6px 10px;
             }
             .reset-all-btn {
                 padding: 6px 10px;
@@ -948,22 +949,22 @@
 
         function getMobileBottomPadding() {
             var isMobile = window.innerWidth <= 768;
-            if (!isMobile) return 30;
+            if (!isMobile) return 20;
             var isSidebarOpen = document.body.classList.contains('sidebar-open');
-            if (!isSidebarOpen) return 60;
+            if (!isSidebarOpen) return 40;
             var sidebarEl = document.getElementById('sidebar');
-            var h = sidebarEl ? sidebarEl.offsetHeight : Math.round(window.innerHeight * 0.48);
-            return h + 20;
+            var h = sidebarEl ? sidebarEl.offsetHeight : Math.round(window.innerHeight * 0.32);
+            return h + 10;
         }
 
         function fitToArgentina(animate) {
             var isMobile = window.innerWidth <= 768;
             var isSidebarOpen = document.body.classList.contains('sidebar-open');
-            var padLeft = isMobile ? 16 : (isSidebarOpen ? 350 : 30);
-            var padBottom = getMobileBottomPadding();
-            map.fitBounds(ARGENTINA_BOUNDS, {
-                paddingTopLeft: [padLeft, isMobile ? 48 : 20],
-                paddingBottomRight: [isMobile ? 16 : 25, padBottom],
+            var padLeft = isMobile ? 6 : (isSidebarOpen ? 344 : 16);
+            var viewBounds = L.latLngBounds([[-51.5, -71.5], [-22.4, -54.5]]);
+            map.fitBounds(viewBounds, {
+                paddingTopLeft: [padLeft, 4],
+                paddingBottomRight: [6, isMobile ? (isSidebarOpen ? Math.round(window.innerHeight * 0.24) : 20) : 4],
                 animate: animate !== false
             });
         }
@@ -1174,24 +1175,24 @@
                 }
                 return { radius: 3.5, fillColor: "#94a3b8", color: "#cbd5e1", weight: 0.5, opacity: 0.2, fillOpacity: 0.08 };
             }
-            // Vista general del país: puntos difuminados en zoom bajo, más definidos al acercar
+            // Vista general del país: puntos más chicos y limpios en zoom bajo, más grandes al acercar
             if (z < 6.5) {
                 return {
-                    radius: 4.2,
-                    fillColor: "#3b82f6",
-                    color: "#60a5fa",
-                    weight: 0.8,
-                    opacity: 0.22,
-                    fillOpacity: 0.26
+                    radius: 3.6,
+                    fillColor: "#2563eb",
+                    color: "#ffffff",
+                    weight: 0.9,
+                    opacity: 0.85,
+                    fillOpacity: 0.72
                 };
             } else if (z < 7.5) {
                 return {
                     radius: 5.2,
                     fillColor: "#2563eb",
                     color: "#ffffff",
-                    weight: 1.2,
-                    opacity: 0.65,
-                    fillOpacity: 0.55
+                    weight: 1.4,
+                    opacity: 0.95,
+                    fillOpacity: 0.82
                 };
             } else {
                 return {
@@ -1200,7 +1201,7 @@
                     color: "#ffffff",
                     weight: 2,
                     opacity: 1,
-                    fillOpacity: 0.90
+                    fillOpacity: 0.92
                 };
             }
         }
