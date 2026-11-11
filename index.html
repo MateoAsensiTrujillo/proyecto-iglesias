@@ -960,11 +960,11 @@
         function fitToArgentina(animate) {
             var isMobile = window.innerWidth <= 768;
             var isSidebarOpen = document.body.classList.contains('sidebar-open');
-            var padLeft = isMobile ? 6 : (isSidebarOpen ? 344 : 16);
-            var viewBounds = L.latLngBounds([[-51.5, -71.5], [-22.4, -54.5]]);
+            var padLeft = isMobile ? 12 : (isSidebarOpen ? 344 : 16);
+            var viewBounds = L.latLngBounds([[-55.0, -73.2], [-21.8, -53.6]]);
             map.fitBounds(viewBounds, {
-                paddingTopLeft: [padLeft, 4],
-                paddingBottomRight: [6, isMobile ? (isSidebarOpen ? Math.round(window.innerHeight * 0.24) : 20) : 4],
+                paddingTopLeft: [padLeft, isMobile ? 42 : 8],
+                paddingBottomRight: [isMobile ? 12 : 8, isMobile ? (isSidebarOpen ? Math.round(window.innerHeight * 0.31) : 24) : 8],
                 animate: animate !== false
             });
         }
